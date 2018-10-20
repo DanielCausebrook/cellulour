@@ -13,6 +13,16 @@ public class Might implements Automata{
     private int height;
     private final Random r = new Random();
 
+    private final double FIGHT_RATE = 0.2;
+    private final double FIGHT_MIN_DIFF = 0.2;
+    private final double FIGHT_STR_IMPACT = 2;
+    private final double MERGE_RATE = 0.5;
+    private final double DIVERGENCE = 0.01;
+    private final double STRENGTH_STEAL = 0.3;
+    private final double STRENGTH_DECAY = 0.005;
+    private final double HUE_MERGE = 0.25;
+    private final double STRENGTH_MERGE = 0.25;
+
     public Might(int w, int h) {
         width = w;
         height = h;
@@ -45,39 +55,40 @@ public class Might implements Automata{
                 double magDiff = (diff<0.5)?diff:diff-1;
                 double strDiff = getStr(x,y) - getStr(x+xD,y+yD);
 
-                if(minDiff > 0.2 && r.nextDouble() < 0.2) {
+                if(minDiff > FIGHT_MIN_DIFF && r.nextDouble() < FIGHT_RATE) {
                     // If the hues are different enough, chance to fight
 
-                    if(r.nextDouble() > 0.5 + strDiff*2) {
+                    if(r.nextDouble() > 0.5 + strDiff*FIGHT_STR_IMPACT) {
                         // Current cell has been invaded
 
                         // Set hue to same as invading cell.
                         nextHue[x][y] = getHue(x+xD,y+yD);
 
                         // Add colour divergence if necessary.
-                        nextHue[x][y] = (1 + getHue(x,y) + 0*strDiff) % 1;
+                        nextHue[x][y] = (1 + getHue(x,y) + DIVERGENCE*strDiff) % 1;
 
                         // Modify strength of invader and invaded
                         setStr(x-xD, y-yD, (getStr(x, y) + getStr(x-xD, y-yD))/2);
-                        modStr(x-xD, y-yD, -0.3);
+                        modStr(x-xD, y-yD, -STRENGTH_STEAL);
                         setStr(x, y, getStr(x+xD, y+yD));
-                        modStr(x, y, 0.3);
+                        modStr(x, y, STRENGTH_STEAL);
                     }
-                } else if(r.nextDouble() > minDiff*2 + 0.4 - (0.5*strDiff)) {
+                } else if(r.nextDouble() > minDiff*2 + 0.4 - (0.5*strDiff) && r.nextDouble() < MERGE_RATE) {
                     // If the hues are similar enough, chance to merge.
+                    //TODO Add adjustment variables
 
                     // Merge hues
-                    nextHue[x][y] = (getHue(x,y) - magDiff/4) % 1;
+                    nextHue[x][y] = (getHue(x,y) - HUE_MERGE*magDiff) % 1;
 
                     // Merge and decay strength
-                    setStr(x,y,getStr(x,y)- 0.25*strDiff);
-                    modStr(x,y,-0.005);
+                    setStr(x,y,getStr(x,y) - STRENGTH_MERGE*strDiff);
+                    modStr(x,y,-STRENGTH_DECAY);
 
                 }
             }
             for(int x = 0; x < width; x++) for(int y = 0; y < height; y++) {
                 setHue(x, y, nextHue[x][y]);
-                gc.setFill(Color.hsb(getHue(x,y)*360,1,(-getStr(x,y)/2+1.5)/2));
+                gc.setFill(Color.hsb(getHue(x,y)*360,1,1/*(-getStr(x,y)/2+1.5)/2*/));
                 gc.fillRect(x*8, y*8, 8, 8);
             }
         }));
